@@ -86,11 +86,13 @@ public class Requests {
     }
 
     public List<JsonObject> commentsOfDirector2(String director) {
-        QueryResult result = cluster.query("Select m._id movie_id, Array co.text \n" +
-                "    For co in c end as text\n" +
-                "From `mflix-sample`._default.movies m\n" +
-                "Nest `mflix-sample`._default.comments c ON m._id = c.movie_id\n" +
-                "Where any director in m.directors satisfies director = $director end",
+        QueryResult result = cluster.query("select c.movie_id,  c.text\n" +
+                        "from `mflix-sample`._default.comments c\n" +
+                        "where c.movie_id in (\n" +
+                        "  select raw m._id\n" +
+                        "  from `mflix-sample`._default.movies m\n" +
+                        "  where any v in m.directors satisfies v = $director end\n" +
+                        ")",
                 queryOptions().parameters(JsonObject.create().put("director", director)));
         return result.rowsAsObject();
     }
