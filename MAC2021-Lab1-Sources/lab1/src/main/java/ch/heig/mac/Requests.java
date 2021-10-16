@@ -77,15 +77,22 @@ public class Requests {
     }
 
     public List<JsonObject> commentsOfDirector1(String director) {
-        //TODO créér index
-        QueryResult result = cluster.query("Select m._id, c.text\n" +
+        QueryResult result = cluster.query("Select m._id movie_id,c.text text\n" +
                 "From `mflix-sample`._default.movies m\n" +
-                "Join `mflix-sample`._default.comments c On m._id = c.movie_id");
-        throw new UnsupportedOperationException("Not implemented, yet");
+                "Join `mflix-sample`._default.comments c ON m._id = c.movie_id\n" +
+                "Where any director in m.directors satisfies director = $director end",
+                queryOptions().parameters(JsonObject.create().put("director", director)));
+        return result.rowsAsObject();
     }
 
     public List<JsonObject> commentsOfDirector2(String director) {
-        throw new UnsupportedOperationException("Not implemented, yet");
+        QueryResult result = cluster.query("Select m._id movie_id, Array co.text \n" +
+                "    For co in c end as text\n" +
+                "From `mflix-sample`._default.movies m\n" +
+                "Nest `mflix-sample`._default.comments c ON m._id = c.movie_id\n" +
+                "Where any director in m.directors satisfies director = $director end",
+                queryOptions().parameters(JsonObject.create().put("director", director)));
+        return result.rowsAsObject();
     }
 
     // Returns true if the update was successful.
