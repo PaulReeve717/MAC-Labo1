@@ -117,7 +117,20 @@ public class Requests {
     }
 
     public List<JsonObject> nightMovies() {
-        throw new UnsupportedOperationException("Not implemented, yet");
+        QueryResult result = cluster.query("select m._id movie_id, m.`title` title\n" +
+                "from `mflix-sample`._default.movies m\n" +
+                "where m._id not in ( \n" +
+                "  select distinct raw sched.movieId\n" +
+                "  from `mflix-sample`._default.theaters\n" +
+                "  unnest schedule sched\n" +
+                "  where sched.hourBegin < \"18:00:00\"\n" +
+                ")\n" +
+                "  and m._id in (\n" +
+                "    select distinct raw sched.movieId\n" +
+                "    from `mflix-sample`._default.theaters\n" +
+                "    unnest schedule sched\n" +
+                "  )");
+        return result.rowsAsObject();
     }
 
 
