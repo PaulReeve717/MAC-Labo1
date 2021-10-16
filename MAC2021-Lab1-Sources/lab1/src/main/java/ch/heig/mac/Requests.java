@@ -97,7 +97,23 @@ public class Requests {
 
     // Returns true if the update was successful.
     public Boolean removeEarlyProjection(String movieId) {
-        throw new UnsupportedOperationException("Not implemented, yet");
+        cluster.query("update `mflix-sample`._default.theaters t1\n" +
+                "set schedule = Array_flatten ((\n" +
+                "select raw array v for v in schedule\n" +
+                "  when v.movieId != $movieId\n" +
+                "  or v.hourBegin > \"18:00:00\" end\n" +
+                "from `mflix-sample`._default.theaters t2\n" +
+                "where t2._id = t1._id\n" +
+                "), 1)",
+                queryOptions().parameters(JsonObject.create().put("movieId", movieId)));
+
+        QueryResult check = cluster.query("select raw sched \n" +
+                "  from `mflix-sample`._default.theaters\n" +
+                "  unnest schedule sched\n" +
+                "  where sched.movieId = $movieId\n" +
+                "  and sched.hourBegin <= \"18:00:00\"",
+                queryOptions().parameters(JsonObject.create().put("movieId", movieId)));
+        return check.rowsAsObject().isEmpty();
     }
 
     public List<JsonObject> nightMovies() {
